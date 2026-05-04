@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>محاكي القدرات اللفظي - نموذج (6) - أ/ عبدالعزيز الفيفي</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <style>
+        :root { --maroon: #800000; --gold: #d4af37; --bg: #fdfaf1; --white: #ffffff; --correct: #2e7d32; --wrong: #c62828; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; margin: 0; user-select: none; }
+        .quiz-card { background: var(--white); width: 100%; max-width: 900px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border-top: 10px solid var(--maroon); padding: 30px; position: relative; }
+        .header { text-align: center; border-bottom: 2px solid var(--gold); margin-bottom: 20px; padding-bottom: 10px; }
+        .input-group { margin: 15px auto; width: 85%; text-align: right; }
+        input, select { width: 100%; padding: 14px; border-radius: 8px; border: 1.5px solid #ccc; font-size: 1.1rem; outline: none; box-sizing: border-box; background: #fff; margin-bottom: 10px; }
+        .nav-bar { display: flex; justify-content: space-between; align-items: center; background: #f4f4f4; padding: 12px 20px; border-radius: 10px; margin-bottom: 20px; }
+        .q-section-tag { color: var(--maroon); font-weight: bold; font-size: 1rem; margin-bottom: 10px; display: block; text-align: right; border-right: 4px solid var(--gold); padding-right: 10px; }
+        .q-text { font-size: 1.4rem; font-weight: bold; text-align: center; margin-bottom: 30px; line-height: 1.8; color: #222; min-height: 50px; }
+        .reading-box { background: #fff9e6; border: 1.5px solid #f0e68c; padding: 20px; border-radius: 12px; margin-bottom: 20px; line-height: 1.8; font-size: 1.1rem; text-align: justify; color: #333; }
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .opt { padding: 18px; border: 2px solid #ececec; border-radius: 12px; cursor: pointer; transition: 0.2s; text-align: center; font-size: 1.2rem; background: #fff; font-weight: 600; }
+        .opt:hover { border-color: var(--gold); background: #fffcf0; }
+        .correct { background: var(--correct) !important; color: white; border-color: var(--correct) !important; }
+        .wrong { background: var(--wrong) !important; color: white; border-color: var(--wrong) !important; }
+        .btn { background: var(--maroon); color: var(--gold); padding: 14px 50px; border: none; border-radius: 10px; cursor: pointer; font-size: 1.2rem; font-weight: bold; }
+        .hidden { display: none !important; }
+        #timer { color: var(--maroon); font-size: 1.6rem; font-weight: 800; border: 2px solid var(--gold); padding: 5px 15px; border-radius: 50px; }
+        .fb-box { margin-top: 20px; padding: 20px; background: #f0f4ff; border-right: 8px solid var(--gold); border-radius: 8px; line-height: 1.8; display: none; color: #1a237e; white-space: pre-line; }
+    </style>
+</head>
+<body oncontextmenu="return false;">
+
+<div class="quiz-card">
+    <div class="header">
+        <h3 style="margin:0; color:var(--maroon);">أ / عبدالعزيز الفيفي ✨</h3>
+        <h2 style="margin:5px 0;">محاكي القدرات اللفظي - <span id="model-title">نموذج (6) - متوسط السهولة</span></h2>
+        <p style="margin:0; color:var(--gold); font-weight:bold;">ثانوية الأمير عبدالمجيد 🎓</p>
+    </div>
+
+    <div id="start-page" style="text-align: center;">
+        <div class="input-group"><input type="text" id="studentName" placeholder="الاسم الثلاثي"></div>
+        <div class="input-group">
+            <select id="stageSelect" onchange="updateClasses()">
+                <option value="">-- اختر المرحلة الدراسية --</option>
+                <option value="أول ثانوي">أول ثانوي</option>
+                <option value="ثاني ثانوي">ثاني ثانوي</option>
+                <option value="ثالث ثانوي">ثالث ثانوي</option>
+            </select>
+            <select id="studentClass" class="hidden"><option value="">-- اختر الفصل --</option></select>
+        </div>
+        <button id="start-btn" class="btn" onclick="checkDoubleEntry()">ابدأ النموذج (6) 🚀</button>
+    </div>
+
+    <div id="quiz-page" class="hidden">
+        <div class="nav-bar">
+            <div id="q-counter" style="font-weight: bold;"></div>
+            <div id="timer">45</div>
+        </div>
+        <span id="question-category" class="q-section-tag"></span>
+        <div id="reading-container" class="reading-box hidden"></div>
+        <div id="question-text" class="q-text"></div>
+        <div id="options-area" class="options-grid"></div>
+        <div id="feedback-area" class="fb-box"></div>
+        <div style="text-align: center; margin-top: 25px;">
+            <button id="next-btn" class="btn hidden" onclick="nextQuestion()">السؤال التالي ⮕</button>
+        </div>
+    </div>
+
+    <div id="result-page" class="hidden" style="text-align: center;">
+        <h2 style="color: var(--maroon);">انتهى النموذج (6)</h2>
+        <div style="font-size: 4rem; font-weight: bold; margin: 20px 0; color: var(--gold);" id="score-text"></div>
+        <p id="cloud-msg" style="font-size: 1.1rem; color: #555;"></p>
+        <button class="btn" onclick="location.reload()">خروج</button>
+    </div>
+</div>
+
+<script>
+    const currentModelId = "model_6";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBkCO7FDQXd89YDf843J4_AtvEFvzzt-R0",
+        authDomain: "aztlg-494c3.firebaseapp.com",
+        projectId: "aztlg-494c3",
+        storageBucket: "aztlg-494c3.firebasestorage.app",
+        messagingSenderId: "597051893949",
+        appId: "1:597051893949:web:de5554ac900317a92b2fd4"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    function updateClasses() {
+        const stage = document.getElementById('stageSelect').value;
+        const classSelect = document.getElementById('studentClass');
+        classSelect.innerHTML = '<option value="">-- اختر الفصل --</option>';
+        if (stage) {
+            classSelect.classList.remove('hidden');
+            for (let i = 1; i <= 6; i++) {
+                const opt = document.createElement('option');
+                opt.value = `${stage} - ${i}`;
+                opt.innerText = `فصل ${i}`;
+                classSelect.appendChild(opt);
+            }
+        } else { classSelect.classList.add('hidden'); }
+    }
+
+    async function checkDoubleEntry() {
+        const nameInput = document.getElementById('studentName').value.trim();
+        const classInput = document.getElementById('studentClass').value;
+        if(nameInput.split(' ').length < 3) return alert("يرجى كتابة الاسم الثلاثي.");
+        if(!classInput) return alert("يرجى اختيار الفصل.");
+
+        const btn = document.getElementById('start-btn');
+        btn.disabled = true;
+
+        try {
+            const snapshot = await db.collection("student_results")
+                .where("name", "==", nameInput)
+                .where("model_id", "==", currentModelId)
+                .get();
+
+            if (!snapshot.empty || localStorage.getItem('taken_' + currentModelId)) {
+                alert("لقد تم حل هذا النموذج مسبقاً.");
+                location.reload();
+            } else { startQuiz(nameInput, classInput); }
+        } catch (e) { startQuiz(nameInput, classInput); }
+    }
+
+    const quizData = [
+        // تناظر لفظي (1-10)
+        { cat: "التناظر اللفظي", q: "أسد : زئير", opts: ["ماء : خرير", "حمام : هديل", "ريح : صرير", "كل ما سبق"], ans: "كل ما سبق", tip: "علاقة الكائن بصوته (الأسد يزأر، والماء يخر، والحمام يهدل)." },
+        { cat: "التناظر اللفظي", q: "أشجار : غابة", opts: ["نجوم : سماء", "كتب : مكتبة", "أغنام : حظيرة", "لاعبون : فريق"], ans: "كتب : مكتبة", tip: "علاقة المجموعة بالمكان المخصص لها." },
+        { cat: "التناظر اللفظي", q: "خيط : ثوب", opts: ["لبنة : جدار", "ورقة : كتاب", "حلقة : سلسلة", "كل ما سبق"], ans: "كل ما سبق", tip: "علاقة الجزء بالكل." },
+        { cat: "التناظر اللفظي", q: "الظهر : العصر", opts: ["السبت : الأحد", "الفجر : المغرب", "الشتاء : الصيف", "الطفولة : الشباب"], ans: "السبت : الأحد", tip: "علاقة تتابع وتعاقب." },
+        { cat: "التناظر اللفظي", q: "ساعة : وقت", opts: ["بوصلة : اتجاه", "ميزان : ثقل", "ترمومتر : حرارة", "كل ما سبق"], ans: "كل ما سبق", tip: "علاقة الأداة بوظيفتها." },
+        { cat: "التناظر اللفظي", q: "مستشفى : طبيب", opts: ["مدرسة : معلم", "مطار : طيار", "ملعب : لاعب", "كل ما سبق"], ans: "كل ما سبق", tip: "علاقة المكان بالشخص الذي يعمل فيه." },
+        { cat: "التناظر اللفظي", q: "نحل : عسل", opts: ["بقر : حليب", "دجاج : بيض", "غنم : صوف", "كل ما سبق"], ans: "كل ما سبق", tip: "علاقة الكائن بمنتجه." },
+        { cat: "التناظر اللفظي", q: "قريب : بعيد", opts: ["طويل : قصير", "جميل : قبيح", "غني : فقير", "كل ما سبق"], ans: "كل ما سبق", tip: "علاقة تضاد." },
+        { cat: "التناظر اللفظي", q: "منزل : غرف", opts: ["جسم : أعضاء", "شجرة : أغصان", "كتاب : فصول", "كل ما سبق"], ans: "كل ما سبق", tip: "الكل والجزء المكون له." },
+        { cat: "التناظر اللفظي", q: "سكين : قطع", opts: ["قلم : كتابة", "مفتاح : فتح", "فأس : حفر", "كل ما سبق"], ans: "كل ما سبق", tip: "علاقة الأداة بوظيفتها." },
+
+        // إكمال جمل (11-20)
+        { cat: "إكمال الجمل", q: "من يقدم على العمل وهو ...... ، فسوف ينجزه وهو ...... .", opts: ["متشائم - فاشل", "متردد - خائف", "واثق - مبدع", "نشيط - متعب"], ans: "واثق - مبدع", tip: "الثقة بالنفس مفتاح الإبداع." },
+        { cat: "إكمال الجمل", q: "القناعة كنز لا ...... ، وهي سر ...... الدائم.", opts: ["ينفد - السعادة", "يضيع - الغنى", "ينتهي - النجاح", "يصدأ - الأمل"], ans: "ينفد - السعادة", tip: "القناعة تؤدي لراحة البال والرضا." },
+        { cat: "إكمال الجمل", q: "عليك بالصدق فإنه ...... ، وإياك والكذب فإنه ...... .", opts: ["منجاة - مهواة", "صعب - سهل", "قوة - ضعف", "نور - ظلام"], ans: "منجاة - مهواة", tip: "الصدق ينجي صاحبه دائماً." },
+        { cat: "إكمال الجمل", q: "أفضل وسيلة للتعامل مع ...... هي ...... .", opts: ["الجهلاء - التجاهل", "الأصدقاء - الغدر", "العمل - التكاسل", "الوقت - الضياع"], ans: "الجهلاء - التجاهل", tip: "الحلم والتجاهل مع الجاهل كمال." },
+        { cat: "إكمال الجمل", q: "الوالدان هما أحق الناس بـ ...... و ...... .", opts: ["البر - الطاعة", "المال - العمل", "الصبر - الهجر", "الخوف - البعد"], ans: "البر - الطاعة", tip: "من أوجب الواجبات الدينية." },
+        { cat: "إكمال الجمل", q: "الماء عصب ...... ، وبدونه تنعدم ...... .", opts: ["الحياة - الحياة", "الأرض - الملوحة", "الإنسان - الصحة", "الزرع - الزراعة"], ans: "الحياة - الحياة", tip: "أهمية الماء القصوى." },
+        { cat: "إكمال الجمل", q: "الوقت كـ ...... إن لم تقطعه ...... .", opts: ["السيف - قطعك", "الذهب - ضاع", "الماء - تبخر", "الريح - رحل"], ans: "السيف - قطعك", tip: "أهمية استثمار الوقت." },
+        { cat: "إكمال الجمل", q: "من أراد ...... فعليه بـ ...... .", opts: ["النجاح - الاجتهاد", "الراحة - النوم", "السفر - المال", "اللعب - التعب"], ans: "النجاح - الاجتهاد", tip: "السبب والنتيجة المنطقية." },
+        { cat: "إكمال الجمل", q: "العقل السليم في الجسم ...... .", opts: ["السليم", "الضعيف", "الكبير", "الطويل"], ans: "السليم", tip: "ارتباط الصحة البدنية بالعقلية." },
+        { cat: "إكمال الجمل", q: "خير الكلام ما ...... ودل.", opts: ["قلّ", "طال", "زاد", "كثر"], ans: "قلّ", tip: "البلاغة في الإيجاز." },
+
+        // خطأ سياقي (21-30)
+        { cat: "الخطأ السياقي", q: "المجتهد يرى في كل مشكلة فرصة، والكسول يرى في كل فرصة مصيبة.", opts: ["المجتهد", "مشكلة", "الكسول", "مصيبة"], ans: "مصيبة", tip: "الصواب: عائقاً أو مشكلة." },
+        { cat: "الخطأ السياقي", q: "من زاد ماله قلّ حياؤه، ومن قلّ حياؤه كثر سروره.", opts: ["زاد", "قلّ", "حياؤه", "سروره"], ans: "سروره", tip: "الصواب: قلّ سروره أو سقط قدره." },
+        { cat: "الخطأ السياقي", q: "كن جواداً مع الفقراء، فالبخل صفة محمودة.", opts: ["جواداً", "الفقراء", "البخل", "محمودة"], ans: "محمودة", tip: "الصواب: مذمومة." },
+        { cat: "الخطأ السياقي", q: "الصمت في وقت الحاجة قوة، والكلام في غير موضعه حكمة.", opts: ["الصمت", "قوة", "الكلام", "حكمة"], ans: "حكمة", tip: "الصواب: حماقة." },
+        { cat: "الخطأ السياقي", q: "الكتب هي خزائن العلم، فاحرص على إتلافها.", opts: ["الكتب", "خزائن", "احرص", "إتلافها"], ans: "إتلافها", tip: "الصواب: اقتنائها أو قراءتها." },
+        { cat: "الخطأ السياقي", q: "الأمانة ثقيلة، فلا يحملها إلا من اتصف بالخيانة.", opts: ["الأمانة", "ثقيلة", "يحملها", "الخيانة"], ans: "الخيانة", tip: "الصواب: الصدق أو الوفاء." },
+        { cat: "الخطأ السياقي", q: "الرياضة تقوي البدن، وتجعل العضلات تضعف.", opts: ["الرياضة", "تقوي", "العضلات", "تضعف"], ans: "تضعف", tip: "الصواب: تقوى." },
+        { cat: "الخطأ السياقي", q: "السعادة تنبع من الداخل، لذا ابحث عنها في الخارج.", opts: ["السعادة", "الداخل", "ابحث", "الخارج"], ans: "الخارج", tip: "الصواب: في نفسك." },
+        { cat: "الخطأ السياقي", q: "الشمس تشرق من المغرب كل يوم.", opts: ["الشمس", "تشرق", "المغرب", "يوم"], ans: "المغرب", tip: "الصواب: المشرق." },
+        { cat: "الخطأ السياقي", q: "النجاح يحتاج إلى عمل قليل وصبر طويل.", opts: ["النجاح", "يحتاج", "قليل", "طويل"], ans: "قليل", tip: "الصواب: كثير." },
+
+        // استيعاب مقروء (31-35)
+        { 
+            cat: "استيعاب المقروء", 
+            passage: "يعتبر التمر غذاءً كاملاً لاحتوائه على السكريات والمعادن والفيتامينات، وهو جزء أساسي من الثقافة والضيافة في الجزيرة العربية.",
+            q: "يحتوي التمر على:", 
+            opts: ["سكريات ومعادن", "ماء فقط", "ألياف خشبية", "لا شيء مما سبق"], 
+            ans: "سكريات ومعادن", 
+            tip: "مذكور في النص صراحة." 
+        },
+        { 
+            cat: "استيعاب المقروء", 
+            passage: "النمل حشرة اجتماعية تعيش في مستعمرات منظمة، وتشتهر بالنشاط والقدرة العالية على تخزين الطعام لفصل الشتاء.",
+            q: "الميزة الأساسية للنمل حسب النص:", 
+            opts: ["الكسل", "النشاط والتنظيم", "العيش منفرداً", "الطيران"], 
+            ans: "النشاط والتنظيم", 
+            tip: "مذكور أنه يعيش في مستعمرات ومنظم." 
+        },
+        { 
+            cat: "استيعاب المقروء", 
+            passage: "الإنترنت وسيلة سريعة للحصول على المعلومات، لكن يجب الحذر من الأخبار الكاذبة والمواقع غير الموثوقة.",
+            q: "يجب على مستخدم الإنترنت:", 
+            opts: ["تصدق كل شيء", "الحذر والتثبت", "ترك الإنترنت", "نشر الأكاذيب"], 
+            ans: "الحذر والتثبت", 
+            tip: "النص حذر من المواقع غير الموثوقة." 
+        },
+        { 
+            cat: "استيعاب المقروء", 
+            passage: "التمارين الرياضية الصباحية تساعد على تنشيط الدورة الدموية وتزيد من قدرة الفرد على التركيز طوال اليوم.",
+            q: "فائدة الرياضة الصباحية كما وردت:", 
+            opts: ["النوم", "تنشيط الدورة الدموية", "زيادة الوزن", "التعب"], 
+            ans: "تنشيط الدورة الدموية", 
+            tip: "مباشرة من النص." 
+        },
+        { 
+            cat: "استيعاب المقروء", 
+            passage: "القراءة غذاء الروح، فهي تفتح آفاقاً واسعة للعقل وتزيد من ثقافة الإنسان ومعلوماته العامة.",
+            q: "تؤثر القراءة بشكل إيجابي على:", 
+            opts: ["العقل والثقافة", "الطول والوزن", "المال فقط", "النظر فقط"], 
+            ans: "العقل والثقافة", 
+            tip: "القراءة تنمي العقل." 
+        },
+
+        // مفردة شاذة وارتباط (36-40)
+        { cat: "المفردة الشاذة", q: "حدد المفردة الشاذة: (أسد - نمر - فهد - غزال)", opts: ["أسد", "نمر", "فهد", "غزال"], ans: "غزال", tip: "البقية مفترسات، الغزال أليف وعاشب." },
+        { cat: "المفردة الشاذة", q: "حدد المفردة الشاذة: (قلم - كتاب - سبورة - تفاحة)", opts: ["قلم", "كتاب", "سبورة", "تفاحة"], ans: "تفاحة", tip: "البقية أدوات مدرسية، التفاحة فاكهة." },
+        { cat: "الارتباط والاختلاف", q: "ما الكلمة التي ترتبط بـ 'المستشفى'؟", opts: ["دواء", "سيارة", "كتاب", "ملعب"], ans: "دواء", tip: "علاقة مكانية ووظيفية." },
+        { cat: "الارتباط والاختلاف", q: "أي مما يلي يختلف في فصيلته؟", opts: ["برتقال", "ليمون", "يوسفي", "خيار"], ans: "خيار", tip: "البقية حمضيات." },
+        { cat: "المفردة الشاذة", q: "حدد المفردة الشاذة: (الرياض - جدة - الدمام - لندن)", opts: ["الرياض", "جدة", "الدمام", "لندن"], ans: "لندن", tip: "البقية مدن سعودية." }
+    ];
+
+    let currentIdx = 0, userScore = 0, timer, sName, sClass;
+
+    function startQuiz(name, cls) {
+        sName = name; sClass = cls;
+        document.getElementById('start-page').classList.add('hidden');
+        document.getElementById('quiz-page').classList.remove('hidden');
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        if(currentIdx >= quizData.length) return finishQuiz();
+        const data = quizData[currentIdx];
+        document.getElementById('q-counter').innerText = `سؤال ${currentIdx + 1} من ${quizData.length}`;
+        document.getElementById('question-category').innerText = `القسم: ${data.cat}`;
+        const rc = document.getElementById('reading-container');
+        if(data.passage) { rc.innerText = data.passage; rc.classList.remove('hidden'); }
+        else { rc.classList.add('hidden'); }
+        document.getElementById('question-text').innerText = data.q;
+        document.getElementById('next-btn').classList.add('hidden');
+        document.getElementById('feedback-area').style.display = 'none';
+        const box = document.getElementById('options-area'); box.innerHTML = '';
+        [...data.opts].sort(() => Math.random() - 0.5).forEach(o => {
+            const d = document.createElement('div'); d.className = 'opt'; d.innerText = o;
+            d.onclick = () => check(o, d); box.appendChild(d);
+        });
+        startTimer();
+    }
+
+    function check(sel, el) {
+        clearInterval(timer); const correctAns = quizData[currentIdx].ans;
+        if(sel === correctAns) userScore++;
+        document.querySelectorAll('.opt').forEach(opt => {
+            opt.onclick = null;
+            if(opt.innerText === correctAns) opt.classList.add('correct');
+            else if(opt.innerText === sel) opt.classList.add('wrong');
+        });
+        const fbArea = document.getElementById('feedback-area');
+        fbArea.innerText = "تحليل أ/ عبدالعزيز: " + quizData[currentIdx].tip; fbArea.style.display = 'block';
+        document.getElementById('next-btn').classList.remove('hidden');
+    }
+
+    function startTimer() {
+        let s = 45; document.getElementById('timer').innerText = s;
+        clearInterval(timer);
+        timer = setInterval(() => {
+            s--; document.getElementById('timer').innerText = s;
+            if(s <= 0) { clearInterval(timer); check("N/A", null); }
+        }, 1000);
+    }
+
+    function nextQuestion() { currentIdx++; loadQuestion(); }
+
+    async function finishQuiz() {
+        document.getElementById('quiz-page').classList.add('hidden');
+        document.getElementById('result-page').classList.remove('hidden');
+        document.getElementById('score-text').innerText = `${userScore} / ${quizData.length}`;
+        localStorage.setItem('taken_' + currentModelId, 'true');
+        try {
+            await db.collection("student_results").add({
+                name: sName, student_class: sClass, score: userScore, total: quizData.length, model_id: currentModelId,
+                time: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            document.getElementById('cloud-msg').innerText = "✅ تم تسجيل إنجازك في النموذج (6) يا " + sName;
+        } catch(e) { console.error(e); }
+    }
+</script>
+</body>
+</html>
+
